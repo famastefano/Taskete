@@ -1,18 +1,18 @@
 # Taskete &mdash; Task Parallel Library
 
-![CMake Badge](https://img.shields.io/badge/C++-17-lightgreen)
-![CMake Badge](https://img.shields.io/badge/CMake-3.10-lightgreen)
+[![CMake Badge](https://img.shields.io/badge/C++-17-lightgreen)](#)
+[![CMake Badge](https://img.shields.io/badge/CMake-3.10-lightgreen)](#)
 [![Spdlog Badge](https://img.shields.io/badge/spdlog-1.8.0-lightgreen)](https://github.com/gabime/spdlog/releases/tag/v1.8.0)
 
-![CMake Badge](https://img.shields.io/badge/Windows_10-2004-lightgreen)
-![CMake Badge](https://img.shields.io/badge/Visual_Studio_2019-16.7.3-lightgreen)
+[![CMake Badge](https://img.shields.io/badge/Windows_10-2004-lightgreen)](#)
+[![CMake Badge](https://img.shields.io/badge/Visual_Studio_2019-16.7.3-lightgreen)](#)
 
-![CMake Badge](https://img.shields.io/badge/Ubuntu-20.04-lightgreen)
-![CMake Badge](https://img.shields.io/badge/Clang-10-lightgreen)
+[![CMake Badge](https://img.shields.io/badge/Ubuntu-20.04-lightgreen)](#)
+[![CMake Badge](https://img.shields.io/badge/Clang-10-lightgreen)](#)
 
 ## Description
 
-![Graph Image](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Tred-Gprime.svg/168px-Tred-Gprime.svg.png)
+[![Graph Image](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Tred-Gprime.svg/168px-Tred-Gprime.svg.png)](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
 
 Manages the execution of [DAGs](https://en.wikipedia.org/wiki/Directed_acyclic_graph) via a minimal, yet expressive, API.
 
