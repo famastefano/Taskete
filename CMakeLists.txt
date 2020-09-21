@@ -18,7 +18,7 @@ endif()
 ###### LIBRARY ######
 add_library(taskete SHARED
 	"source/taskete/memory_resource.cpp"
-)
+ "source/taskete/execution_payload.cpp")
 target_include_directories(taskete PRIVATE include)
 
 if(USE_SPDLOG)
@@ -40,7 +40,7 @@ if(RUN_TESTS)
 
 	set(TEST_SRC
 		"test/test_main.cpp"
-		)
+		 "test/test_execution_payload.cpp")
 
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
@@ -70,6 +70,8 @@ if(RUN_TESTS)
 		if(USE_SPDLOG)
 			target_link_libraries(taskete_test-runner PRIVATE spdlog::spdlog)
 		endif()
+
+		add_test(NAME RunAllTests COMMAND taskete_test-runner)
 	endif()
 endif()
 ###### ##### ######
