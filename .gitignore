@@ -1,3 +1,12 @@
 # Visual Studio and Building files
 .vs
 /out
+/CMakeSettings.json
+/source/spdlog/bench
+/source/spdlog/example
+/source/spdlog/logos
+/source/spdlog/tests
+/source/spdlog/appveyor.yml
+/source/spdlog/.travis.yml
+/source/spdlog/.clang-tidy
+/source/spdlog/.clang-format
