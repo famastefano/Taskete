@@ -42,15 +42,14 @@ namespace taskete::detail
         template<typename... Args>
         inline void log(Args&&... args)
         {
-
             // "[TH: thread id] ALLOCATED 123 bytes at 0x123 with 123 alignment"
 
             #ifdef TASKETE_HAS_SPDLOG
             logger->log(spdlog::level::debug, "{:>12} {} bytes at {} with {} alignment", std::forward<Args>(args)...);
             #else
-            while (spinlock.test_and_set(std::memory_order_acquire));
+            while (spinlock.test_and_set(std::memory_order_acquire)) {}
 
-            [[maybe_unused]] fprintf(fd, "%-12s %llu bytes at %p with %llu alignment\n", std::forward<Args>(args)...);
+            fprintf(fd, "%-12s %lu bytes at %p with %lu alignment\n", std::forward<Args>(args)...);
 
             spinlock.clear(std::memory_order::memory_order_release);
             #endif
@@ -83,14 +82,14 @@ namespace taskete::detail
 
         // "[TH: thread id] ALLOCATED 123 bytes at 0x123 with 123 alignment"
 
-        logger.log("ALLOCATED", bytes, p, alignment);
+        logger.log("ALLOCATED", static_cast<unsigned long>(bytes), p, static_cast<unsigned long>(alignment));
 
         return p;
     }
 
     void logging_resource::do_deallocate(void* p, std::size_t bytes, std::size_t alignment)
     {
-        logger.log("DEALLOCATED", bytes, p, alignment);
+        logger.log("DEALLOCATED", static_cast<unsigned long>(bytes), p, static_cast<unsigned long>(alignment));
 
         #ifndef _MSC_VER // Clang
         std::free(p);
