@@ -20,6 +20,7 @@ add_library(taskete SHARED
 	"source/taskete/memory_resource.cpp"
  "source/taskete/execution_payload.cpp")
 target_include_directories(taskete PRIVATE include)
+target_compile_features(taskete PRIVATE cxx_std_17)
 
 if(USE_SPDLOG)
 	target_compile_definitions(taskete PRIVATE TASKETE_HAS_SPDLOG)
@@ -29,7 +30,7 @@ endif()
 
 if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 else() # MSVC
-	target_compile_options(taskete PRIVATE /std:c++17)
+	
 endif()
 ###### ####### ######
 
@@ -65,7 +66,7 @@ if(RUN_TESTS)
 
 		add_executable(taskete_test-runner ${TEST_SRC})
 		target_include_directories(taskete_test-runner PRIVATE test)
-		target_compile_options(taskete_test-runner PRIVATE /std:c++17) # tried with cxx_std_17 but didn't work
+		target_compile_features(taskete_test-runner PRIVATE cxx_std_17)
 
 		if(USE_SPDLOG)
 			target_link_libraries(taskete_test-runner PRIVATE spdlog::spdlog)
