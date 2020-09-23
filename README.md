@@ -10,6 +10,8 @@
 [![CMake Badge](https://img.shields.io/badge/Ubuntu-20.04-lightgreen)](#)
 [![CMake Badge](https://img.shields.io/badge/Clang-10-lightgreen)](#)
 
+**This branch shall be considered _unstable_ until we reach the first release.**
+
 ## Description
 
 [![Graph Image](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ef/Tred-Gprime.svg/168px-Tred-Gprime.svg.png)](https://en.wikipedia.org/wiki/Directed_acyclic_graph)
