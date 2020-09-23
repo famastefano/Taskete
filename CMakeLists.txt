@@ -19,7 +19,7 @@ endif()
 ###### LIBRARY ######
 add_library(taskete SHARED
  "source/taskete/memory_resource.cpp"
- "source/taskete/execution_payload.cpp")
+ "source/taskete/execution_payload.cpp" "source/taskete/node.cpp" "source/taskete/shared_memory.cpp")
 
 target_include_directories(taskete PRIVATE include)
 target_compile_features(taskete PRIVATE cxx_std_17)
