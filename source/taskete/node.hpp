@@ -18,7 +18,7 @@ namespace taskete::detail
     public:
         using iterator = T*;
 
-        WaitList(T* data, int sz, std::pmr::memory_resource* res) : size(sz), handles(static_cast<T*>(res->allocate(sizeof(T)*sz, alignof(T))))
+        WaitList(T* data, int sz, std::pmr::memory_resource* res) : size(sz), handles(static_cast<T*>(res->allocate(sizeof(T)*std::size_t(sz), alignof(T))))
         {
             for (int i = 0; i < sz; ++i)
                 handles[i] = *data++;
@@ -32,7 +32,7 @@ namespace taskete::detail
 
         void destroy(std::pmr::memory_resource* res) noexcept
         {
-            res->deallocate(handles, sizeof(T) * size, alignof(T));
+            res->deallocate(handles, sizeof(T) * std::size_t(size), alignof(T));
         }
 
         constexpr iterator begin() noexcept { return handles; }
