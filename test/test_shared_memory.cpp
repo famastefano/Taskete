@@ -13,7 +13,7 @@ TEST_SUITE("Shared Memory - Single Thread")
 
     TEST_CASE("Constructing a non-existing object")
     {
-        taskete::SharedMemory shmem(std::pmr::get_default_resource());
+        taskete::SharedMemory shmem{ std::pmr::get_default_resource() };
 
         int* data = nullptr;
         data = shmem.get_or_construct<int>(0);

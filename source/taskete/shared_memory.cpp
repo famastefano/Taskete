@@ -7,6 +7,7 @@ taskete::SharedMemory::SharedMemory(std::pmr::memory_resource* res)// : memory(r
 
 taskete::detail::MetaData::~MetaData()
 {
-    (*dtor)();
+    if(dtor)
+        (*dtor)();
     delete dtor;
 }

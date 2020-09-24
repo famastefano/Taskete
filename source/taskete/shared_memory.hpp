@@ -1,25 +1,14 @@
 #pragma once
 
+#include "macro_utils.hpp"
+
 #include <vector>
 #include <type_traits>
 #include <cstdint>
 #include <shared_mutex>
 #include <algorithm>
 #include <memory_resource>
-
-#ifdef TASKETE_EXPORT_SYMBOLS
-#ifdef _MSC_VER
-#define TASKETE_LIB_SYMBOLS __declspec(dllexport)
-#else // Clang
-#define TASKETE_LIB_SYMBOLS __attribute__((visibility("default")))
-#endif
-#else // import symbols
-#ifdef _MSC_VER
-#define TASKETE_LIB_SYMBOLS __declspec(dllimport)
-#else // Clang
-#define TASKETE_LIB_SYMBOLS
-#endif
-#endif
+#include <utility>
 
 namespace taskete
 {
@@ -70,6 +59,24 @@ namespace taskete
         public:
             uint64_t key{};
             void* object = nullptr;
+
+            MetaData() = default;
+
+            MetaData(MetaData&& other) noexcept
+            {
+                std::swap(dtor, other.dtor);
+                std::swap(key, other.key);
+                std::swap(object, other.object);
+            }
+
+            MetaData& operator=(MetaData&& rhs) noexcept
+            {
+                std::swap(dtor, rhs.dtor);
+                std::swap(key, rhs.key);
+                std::swap(object, rhs.object);
+
+                return *this;
+            }
         
             template<typename T, typename... Args>
             static MetaData create(uint64_t _key, std::pmr::memory_resource* res, Args&&... args)
@@ -85,7 +92,7 @@ namespace taskete
 
                 data.dtor = new(dtor_mem) DestructorImplementation<T>(res, obj_ptr);
 
-                return data;
+                return std::move(data);
             }
         
             ~MetaData();
