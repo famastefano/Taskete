@@ -122,10 +122,10 @@ namespace taskete
         SharedMemory(SharedMemory&&) = delete;
 
         template<typename T>
-        T* get(uint64_t key) const noexcept;
+        [[nodiscard]] T* get(uint64_t key) const noexcept;
 
         template<typename T, typename... Args>
-        T* get_or_construct(uint64_t key, Args&&... args);
+        [[nodiscard]] T* get_or_construct(uint64_t key, Args&&... args);
     };
 
     template<typename T>
