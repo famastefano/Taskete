@@ -12,10 +12,12 @@ namespace taskete::detail
     public:
         virtual void operator()() noexcept = 0;
 
-        virtual ~ExecutionPayload()
+        virtual std::size_t size_of() const noexcept = 0;
+        
+        virtual ~ExecutionPayload() // we need the destructor to cleanup non-trivial objects used as parameters
         {}
     };
-
+    
     template<typename Callable, typename... Args>
     class UniversalCallable final : public virtual ExecutionPayload
     {
@@ -30,6 +32,11 @@ namespace taskete::detail
         void operator()() noexcept override
         {
             std::apply(c, params);
+        }
+
+        std::size_t size_of() const noexcept override
+        {
+            return sizeof(*this);
         }
     };
 }

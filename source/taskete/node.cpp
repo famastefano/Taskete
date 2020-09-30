@@ -1,13 +1,17 @@
 #include "node.hpp"
 
 taskete::detail::Node::Node(Node&& other) noexcept
-    : graph_id(other.graph_id),
-    wait_counter(other.wait_counter.load(std::memory_order_relaxed)),
-    wait_list(std::move(other.wait_list)),
-    mem_res(other.mem_res)
-{}
-
-taskete::detail::Node::~Node()
+    : graph_id(other.graph_id)
+    , wait_counter(other.wait_counter.load(std::memory_order_acquire))
+    , exec_payload(other.exec_payload)
+    , wait_list(std::move(other.wait_list))
 {
-    wait_list.destroy(mem_res);
+    other.exec_payload = nullptr;
+}
+
+void taskete::detail::Node::destroy(std::pmr::memory_resource* res) noexcept
+{
+    exec_payload->~ExecutionPayload();
+    res->deallocate(exec_payload, exec_payload->size_of());
+    wait_list.destroy(res);
 }

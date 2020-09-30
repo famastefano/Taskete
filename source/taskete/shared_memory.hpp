@@ -18,13 +18,11 @@ namespace taskete
         {
         public:
             virtual void operator()() noexcept = 0;
-            virtual ~TypeErasedDestructor()
-            {}
         };
 
         /*
-         * Our SharedMemory doesn't store the object's types,
-         * but it's still responsible of their cleanup.
+         * SharedMemory doesn't store the object's types,
+         * but it's still responsible cleanup them.
          *
          * This class does it for us:
          * 1. calls the object destructor
@@ -62,22 +60,10 @@ namespace taskete
 
             MetaData() = default;
 
-            MetaData(MetaData&& other) noexcept
-            {
-                std::swap(dtor, other.dtor);
-                std::swap(key, other.key);
-                std::swap(object, other.object);
-            }
+            MetaData(MetaData&& other) noexcept;
+            MetaData& operator=(MetaData&& rhs) noexcept;
 
-            MetaData& operator=(MetaData&& rhs) noexcept
-            {
-                std::swap(dtor, rhs.dtor);
-                std::swap(key, rhs.key);
-                std::swap(object, rhs.object);
-
-                return *this;
-            }
-        
+            // MetaData factory
             template<typename T, typename... Args>
             static MetaData create(uint64_t _key, std::pmr::memory_resource* res, Args&&... args)
             {
@@ -101,17 +87,21 @@ namespace taskete
 
     } // namespace detail
 
-    /*
-     * Handles a type erased memory that will be shared between the nodes of their graph.
-     * 
-     * 
-     */
+    /// <summary>
+    /// Thread-safe associative container of heterogeneous types.
+    /// 
+    /// Accessing the object through its pointer is not thread-safe.
+    /// </summary>
     class TASKETE_LIB_SYMBOLS SharedMemory
     {
     private:
-        mutable std::shared_mutex memory_lock;
         std::pmr::vector<detail::MetaData> memory;
+        mutable std::shared_mutex memory_lock;
 
+        /*
+         * Finds an object or returns nullptr.
+         * Doesn't lock!
+         */
         template<typename T>
         T* read(uint64_t key) const noexcept;
 
@@ -121,9 +111,30 @@ namespace taskete
         SharedMemory(SharedMemory const&) = delete;
         SharedMemory(SharedMemory&&) = delete;
 
+        /// <summary>
+        /// Looks for the specified object and converts it to the provided type.
+        /// Undefined behaviour if the existing object can't be accessed through T*.
+        /// </summary>
+        /// <typeparam name="T">Object's Type.</typeparam>
+        /// <param name="key">Object's Key</param>
+        /// <returns>A pointer to the object, or nullptr otherwise.</returns>
         template<typename T>
         [[nodiscard]] T* get(uint64_t key) const noexcept;
 
+        /// <summary>
+        /// Looks for the specified object, and constructs it if it doesn't exist yet.
+        /// Undefined behaviour if the existing object can't be accessed through T*.
+        /// 
+        /// If no constructor's arguments are provided, the object must meet the DefaultConstructible requirements.
+        /// 
+        /// Object's construction is atomic but unordered, so only 1 thread
+        /// will construct the object but it's not guaranteed which one will.
+        /// </summary>
+        /// <typeparam name="T">Object's Type.</typeparam>
+        /// <typeparam name="...Args">Constructor's Types.</typeparam>
+        /// <param name="key">Object's Key</param>
+        /// <param name="...args">Constructor's arguments.</param>
+        /// <returns>A pointer to the object.</returns>
         template<typename T, typename... Args>
         [[nodiscard]] T* get_or_construct(uint64_t key, Args&&... args);
     };
@@ -146,15 +157,16 @@ namespace taskete
 
         return read<T>(key);
     }
+
     template<typename T, typename ...Args>
     inline T* SharedMemory::get_or_construct(uint64_t key, Args && ...args)
     {
         static_assert(!std::is_reference_v<T>, "Reference types are not allowed.");
 
         if constexpr (sizeof...(Args))
-            static_assert(std::is_constructible_v<T, Args...>, "Can't construct the specified type with the given arguments.");
+            static_assert(std::is_constructible_v<T, Args...>, "Couldn't find a constructor that matches the provided arguments.");
         else
-            static_assert(std::is_default_constructible_v<T>, "Can't default construct the specified type.");
+            static_assert(std::is_default_constructible_v<T>, "If no arguments are provided, the type must be default constructible.");
 
         {
             auto* elem = get<T>(key);
