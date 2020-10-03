@@ -19,9 +19,9 @@ endif()
 
 ###### LIBRARY ######
 add_library(taskete SHARED
- 
  "source/taskete/node.cpp"
- "source/taskete/shared_memory.cpp")
+ "source/taskete/shared_memory.cpp"
+ )
 
 target_include_directories(taskete PRIVATE include)
 target_compile_features(taskete PRIVATE cxx_std_17)
@@ -66,7 +66,7 @@ if(BUILD_TESTING)
 	set(TEST_SRC
 		"test/test_main.cpp"
 		"test/test_execution_payload.cpp"
-		"test/test_shared_memory.cpp")
+		"test/test_shared_memory.cpp" "test/test_ringbuffer.cpp")
 
 	if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 
