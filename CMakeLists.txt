@@ -47,6 +47,8 @@ if (CMAKE_CXX_COMPILER_ID STREQUAL "Clang")
 		-Wconversion
 		-Wold-style-cast
 	)
+
+	target_link_libraries(taskete PRIVATE -lpthread)
 else() # MSVC
 	string(REPLACE "/W3" "" CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS}) # hack to remove D9025 warning regarding overriding /W3 with /W4
 
@@ -79,7 +81,7 @@ if(BUILD_TESTING)
 		target_compile_features(taskete_test-runner PRIVATE cxx_std_17)
 		target_include_directories(taskete_test-runner PRIVATE test)
 		target_compile_options(taskete_test-runner PRIVATE ${CLANG_COMPILER_FLAGS})
-		target_link_libraries(taskete_test-runner PRIVATE taskete)
+		target_link_libraries(taskete_test-runner PRIVATE taskete -lpthread)
 		######
 
 		# Undefined Behaviour Sanitizer
@@ -87,7 +89,7 @@ if(BUILD_TESTING)
 		target_compile_features(taskete_test-runner_UBSAN PRIVATE cxx_std_17)
 		target_include_directories(taskete_test-runner_UBSAN PRIVATE test)
 		target_compile_options(taskete_test-runner_UBSAN PRIVATE ${CLANG_COMPILER_FLAGS} -fsanitize=undefined)
-		target_link_libraries(taskete_test-runner_UBSAN PRIVATE taskete -fsanitize=undefined)
+		target_link_libraries(taskete_test-runner_UBSAN PRIVATE taskete -fsanitize=undefined -lpthread)
 		######
 
 		# Address Sanitizer
@@ -95,7 +97,7 @@ if(BUILD_TESTING)
 		target_compile_features(taskete_test-runner_ASAN PRIVATE cxx_std_17)
 		target_include_directories(taskete_test-runner_ASAN PRIVATE test)
 		target_compile_options(taskete_test-runner_ASAN PRIVATE ${CLANG_COMPILER_FLAGS} -fsanitize=address)
-		target_link_libraries(taskete_test-runner_ASAN PRIVATE taskete -fsanitize=address)
+		target_link_libraries(taskete_test-runner_ASAN PRIVATE taskete -fsanitize=address -lpthread)
 		######
 
 		# Thread Sanitizer
@@ -103,7 +105,7 @@ if(BUILD_TESTING)
 		target_compile_features(taskete_test-runner_THSAN PRIVATE cxx_std_17)
 		target_include_directories(taskete_test-runner_THSAN PRIVATE test)
 		target_compile_options(taskete_test-runner_THSAN PRIVATE ${CLANG_COMPILER_FLAGS} -fsanitize=thread)
-		target_link_libraries(taskete_test-runner_THSAN PRIVATE taskete -fsanitize=thread)
+		target_link_libraries(taskete_test-runner_THSAN PRIVATE taskete -fsanitize=thread -lpthread)
 		######
 
 		add_test(NAME RunBaseTest COMMAND taskete_test-runner)

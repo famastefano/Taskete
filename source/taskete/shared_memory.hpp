@@ -18,6 +18,7 @@ namespace taskete
         {
         public:
             virtual void operator()() noexcept = 0;
+            virtual void destroy() noexcept = 0;
         };
 
         /*
@@ -47,6 +48,11 @@ namespace taskete
 
                 res->deallocate(obj, sizeof(T), alignof(T));
             }
+
+            void destroy() noexcept override
+            {
+                res->deallocate(this, sizeof(*this));
+            }
         };
 
         class TASKETE_LIB_SYMBOLS MetaData
@@ -59,6 +65,8 @@ namespace taskete
             void* object = nullptr;
 
             MetaData() = default;
+            
+            MetaData(MetaData const& other) = delete;
 
             MetaData(MetaData&& other) noexcept;
             MetaData& operator=(MetaData&& rhs) noexcept;
@@ -78,12 +86,11 @@ namespace taskete
 
                 data.dtor = new(dtor_mem) DestructorImplementation<T>(res, obj_ptr);
 
-                return std::move(data);
+                return data;
             }
         
             ~MetaData();
         };
-
 
     } // namespace detail
 

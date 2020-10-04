@@ -22,5 +22,8 @@ taskete::detail::MetaData& taskete::detail::MetaData::operator=(MetaData&& rhs) 
 taskete::detail::MetaData::~MetaData()
 {
     if(dtor)
+    {
         (*dtor)();
+        dtor->destroy();
+    }
 }

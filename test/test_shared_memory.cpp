@@ -2,6 +2,8 @@
 
 #include "../source/taskete/shared_memory.hpp"
 
+#include <thread>
+
 // TODO: constructing complex objects
 // TODO: constructing objects with complex destructors
 // TODO: reading/writing to multiple objects
