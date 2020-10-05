@@ -11,7 +11,7 @@ namespace
     template<typename... Ts>
     std::unique_ptr<taskete::detail::execution_payload> create_payload(Ts&&... ts)
     {
-        return std::make_unique<taskete::detail::UniversalCallable<Ts...>>(std::forward<Ts>(ts)...);
+        return std::make_unique<taskete::detail::universal_callable<Ts...>>(std::forward<Ts>(ts)...);
     }
 
     int non_capturing_lambda_result = 0;
