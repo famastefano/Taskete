@@ -1,16 +1,16 @@
 #include "shared_memory.hpp"
 
-taskete::SharedMemory::SharedMemory(std::pmr::memory_resource* res) : memory(res)
+taskete::shared_memory::shared_memory(std::pmr::memory_resource* res) : memory(res)
 {}
 
-taskete::detail::MetaData::MetaData(MetaData&& other) noexcept
+taskete::detail::meta_data::meta_data(meta_data&& other) noexcept
 {
     std::swap(dtor, other.dtor);
     std::swap(key, other.key);
     std::swap(object, other.object);
 }
 
-taskete::detail::MetaData& taskete::detail::MetaData::operator=(MetaData&& rhs) noexcept
+taskete::detail::meta_data& taskete::detail::meta_data::operator=(meta_data&& rhs) noexcept
 {
     std::swap(dtor, rhs.dtor);
     std::swap(key, rhs.key);
@@ -19,7 +19,7 @@ taskete::detail::MetaData& taskete::detail::MetaData::operator=(MetaData&& rhs) 
     return *this;
 }
 
-taskete::detail::MetaData::~MetaData()
+taskete::detail::meta_data::~meta_data()
 {
     if(dtor)
     {

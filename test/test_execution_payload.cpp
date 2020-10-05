@@ -7,9 +7,9 @@
 // Callables used for this test
 namespace
 {
-    // Just a helper to construct an ExecutionPayload
+    // Just a helper to construct an execution_payload
     template<typename... Ts>
-    std::unique_ptr<taskete::detail::ExecutionPayload> create_payload(Ts&&... ts)
+    std::unique_ptr<taskete::detail::execution_payload> create_payload(Ts&&... ts)
     {
         return std::make_unique<taskete::detail::UniversalCallable<Ts...>>(std::forward<Ts>(ts)...);
     }

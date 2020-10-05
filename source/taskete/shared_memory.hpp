@@ -14,7 +14,7 @@ namespace taskete
 {
     namespace detail
     {
-        class TypeErasedDestructor
+        class type_erased_destructor
         {
         public:
             virtual void operator()() noexcept = 0;
@@ -22,7 +22,7 @@ namespace taskete
         };
 
         /*
-         * SharedMemory doesn't store the object's types,
+         * shared_memory doesn't store the object's types,
          * but it's still responsible cleanup them.
          *
          * This class does it for us:
@@ -30,14 +30,14 @@ namespace taskete
          * 2. deallocates the object
          */
         template<typename T>
-        class DestructorImplementation final : public virtual TypeErasedDestructor
+        class destructor_implementation final : public virtual type_erased_destructor
         {
         private:
             std::pmr::memory_resource* res;
             T* obj;
 
         public:
-            DestructorImplementation(std::pmr::memory_resource* res, T* t) noexcept
+            destructor_implementation(std::pmr::memory_resource* res, T* t) noexcept
                 : res(res), obj(t)
             {}
 
@@ -55,41 +55,41 @@ namespace taskete
             }
         };
 
-        class TASKETE_LIB_SYMBOLS MetaData
+        class TASKETE_LIB_SYMBOLS meta_data
         {
         private:
-            TypeErasedDestructor* dtor = nullptr;
+            type_erased_destructor* dtor = nullptr;
 
         public:
             uint64_t key{};
             void* object = nullptr;
 
-            MetaData() = default;
+            meta_data() = default;
             
-            MetaData(MetaData const& other) = delete;
+            meta_data(meta_data const& other) = delete;
 
-            MetaData(MetaData&& other) noexcept;
-            MetaData& operator=(MetaData&& rhs) noexcept;
+            meta_data(meta_data&& other) noexcept;
+            meta_data& operator=(meta_data&& rhs) noexcept;
 
-            // MetaData factory
+            // meta_data factory
             template<typename T, typename... Args>
-            static MetaData create(uint64_t _key, std::pmr::memory_resource* res, Args&&... args)
+            static meta_data create(uint64_t _key, std::pmr::memory_resource* res, Args&&... args)
             {
-                MetaData data{};
+                meta_data data{};
 
                 data.key = _key;
 
                 data.object = res->allocate(sizeof(T), alignof(T));
                 T* obj_ptr = new(data.object) T{ std::forward<Args>(args)... };
 
-                void* dtor_mem = res->allocate(sizeof(DestructorImplementation<T>));
+                void* dtor_mem = res->allocate(sizeof(destructor_implementation<T>));
 
-                data.dtor = new(dtor_mem) DestructorImplementation<T>(res, obj_ptr);
+                data.dtor = new(dtor_mem) destructor_implementation<T>(res, obj_ptr);
 
                 return data;
             }
         
-            ~MetaData();
+            ~meta_data();
         };
 
     } // namespace detail
@@ -99,10 +99,10 @@ namespace taskete
     /// 
     /// Accessing the object through its pointer is not thread-safe.
     /// </summary>
-    class TASKETE_LIB_SYMBOLS SharedMemory
+    class TASKETE_LIB_SYMBOLS shared_memory
     {
     private:
-        std::pmr::vector<detail::MetaData> memory;
+        std::pmr::vector<detail::meta_data> memory;
         mutable std::shared_mutex memory_lock;
 
         /*
@@ -113,10 +113,10 @@ namespace taskete
         T* read(uint64_t key) const noexcept;
 
     public:
-        SharedMemory(std::pmr::memory_resource* res);
+        shared_memory(std::pmr::memory_resource* res);
 
-        SharedMemory(SharedMemory const&) = delete;
-        SharedMemory(SharedMemory&&) = delete;
+        shared_memory(shared_memory const&) = delete;
+        shared_memory(shared_memory&&) = delete;
 
         /// <summary>
         /// Looks for the specified object and converts it to the provided type.
@@ -147,9 +147,9 @@ namespace taskete
     };
 
     template<typename T>
-    inline T* SharedMemory::read(uint64_t key) const noexcept
+    inline T* shared_memory::read(uint64_t key) const noexcept
     {
-        auto elem = std::find_if(memory.cbegin(), memory.cend(), [key](detail::MetaData const& item)
+        auto elem = std::find_if(memory.cbegin(), memory.cend(), [key](detail::meta_data const& item)
         {
             return item.key == key;
         });
@@ -158,7 +158,7 @@ namespace taskete
     }
 
     template<typename T>
-    inline T* SharedMemory::get(uint64_t key) const noexcept
+    inline T* shared_memory::get(uint64_t key) const noexcept
     {
         std::shared_lock reader{ memory_lock };
 
@@ -166,7 +166,7 @@ namespace taskete
     }
 
     template<typename T, typename ...Args>
-    inline T* SharedMemory::get_or_construct(uint64_t key, Args && ...args)
+    inline T* shared_memory::get_or_construct(uint64_t key, Args && ...args)
     {
         static_assert(!std::is_reference_v<T>, "Reference types are not allowed.");
 
@@ -192,7 +192,7 @@ namespace taskete
 
         auto* mem_res = memory.get_allocator().resource();
         
-        auto data = detail::MetaData::create<T>(key, mem_res, std::forward<Args>(args)...);
+        auto data = detail::meta_data::create<T>(key, mem_res, std::forward<Args>(args)...);
 
         T* elem = static_cast<T*>(data.object);
 

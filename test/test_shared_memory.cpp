@@ -30,14 +30,14 @@ TEST_SUITE("Shared Memory - Single Thread")
 {
     TEST_CASE("Getting a non-existing object")
     {
-        taskete::SharedMemory shmem{ std::pmr::get_default_resource() };
+        taskete::shared_memory shmem{ std::pmr::get_default_resource() };
 
         REQUIRE(shmem.get<int>(0) == nullptr);
     }
 
     TEST_CASE("Constructing a non-existing object")
     {
-        taskete::SharedMemory shmem{ std::pmr::get_default_resource() };
+        taskete::shared_memory shmem{ std::pmr::get_default_resource() };
 
         int* data = nullptr;
         data = shmem.get_or_construct<int>(0);
@@ -52,7 +52,7 @@ TEST_SUITE("Shared Memory - Single Thread")
 
     TEST_CASE("Getting an existing object")
     {
-        taskete::SharedMemory shmem{ std::pmr::get_default_resource() };
+        taskete::shared_memory shmem{ std::pmr::get_default_resource() };
 
         int* expected = shmem.get_or_construct<int>(91, 412);
         REQUIRE(expected != nullptr);
@@ -64,7 +64,7 @@ TEST_SUITE("Shared Memory - Single Thread")
 
     TEST_CASE("Constructing an existing object")
     {
-        taskete::SharedMemory shmem{ std::pmr::get_default_resource() };
+        taskete::shared_memory shmem{ std::pmr::get_default_resource() };
 
         int expected = 21;
         int* obj = shmem.get_or_construct<int>(0, expected);
@@ -83,7 +83,7 @@ TEST_SUITE("Shared Memory - Multiple Thread")
 
     TEST_CASE("Getting a non-existing object")
     {
-        taskete::SharedMemory shmem{ std::pmr::get_default_resource() };
+        taskete::shared_memory shmem{ std::pmr::get_default_resource() };
 
         setup(pool, [&shmem](int i) { data[i] = shmem.get<int>(0); });
         wait_all(pool);
@@ -94,7 +94,7 @@ TEST_SUITE("Shared Memory - Multiple Thread")
 
     TEST_CASE("Constructing a non-existing object")
     {
-        taskete::SharedMemory shmem{ std::pmr::get_default_resource() };
+        taskete::shared_memory shmem{ std::pmr::get_default_resource() };
         int expected = 41235;
 
         setup(pool, [&shmem, expected](int i) { data[i] = shmem.get_or_construct<int>(0, expected); });
@@ -116,7 +116,7 @@ TEST_SUITE("Shared Memory - Multiple Thread")
 
     TEST_CASE("Getting an existing object")
     {
-        taskete::SharedMemory shmem{ std::pmr::get_default_resource() };
+        taskete::shared_memory shmem{ std::pmr::get_default_resource() };
 
         int expected = 124;
         int* obj = shmem.get_or_construct<int>(0, expected);
@@ -133,7 +133,7 @@ TEST_SUITE("Shared Memory - Multiple Thread")
 
     TEST_CASE("Constructing an existing object")
     {
-        taskete::SharedMemory shmem{ std::pmr::get_default_resource() };
+        taskete::shared_memory shmem{ std::pmr::get_default_resource() };
 
         int expected = 987;
         int* obj = shmem.get_or_construct<int>(97, expected);
