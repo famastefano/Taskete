@@ -43,9 +43,9 @@ Manages the execution of [DAGs](https://en.wikipedia.org/wiki/Directed_acyclic_g
 
 To consume this library you need:
 
-- CMake 3.8+
+- CMake 3.10+
 - A C++ compiler that supports the C++17 standard
-- A C++ standard library that supports the C++17 standard
+- A C++ standard library that supports the C++17 standard and `<memory_resource>`
 
 To build and run the tests you need the aforementioned dependencies, and:
 
