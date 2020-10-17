@@ -10,9 +10,8 @@
 #include "lock_helpers.hpp"
 
 #include <cstddef>
-#include <list>
 #include <type_traits>
-#include <list>
+#include <vector>
 #include <algorithm>
 #include <shared_mutex>
 #include <utility>
@@ -27,12 +26,14 @@ namespace taskete::detail
 
     struct pool
     {
-        std::byte* raw_mem;
-        FreeList* head;
+        std::byte* raw_mem = nullptr;
+        FreeList* head = nullptr;
         spinlock mtx;
 
+        pool() = default;
+
         pool(pool const&) = delete;
-        pool(pool&& other) : raw_mem(std::exchange(other.raw_mem, nullptr)), head(std::exchange(other.head, nullptr))
+        pool(pool&& other) noexcept : raw_mem(std::exchange(other.raw_mem, nullptr)), head(std::exchange(other.head, nullptr))
         {}
     };
 
@@ -40,7 +41,7 @@ namespace taskete::detail
     class pool_manager
     {
     private:
-        std::pmr::list<pool> pools;
+        std::pmr::vector<pool*> pools;
         pool_options options;
         pool_helper helper;
         std::shared_mutex rw_mutex;
@@ -57,6 +58,8 @@ namespace taskete::detail
 
         void destroy(handle_t handle) noexcept(std::is_nothrow_destructible_v<T>);
 
+        T& get(handle_t handle) noexcept;
+
         ~pool_manager();
     };
 
@@ -65,21 +68,21 @@ namespace taskete::detail
     {
         {
             std::shared_lock sh_lock{ rw_mutex };
-            auto it = std::find_if(pools.begin(), pools.end(), [](pool& p) -> bool { return p.head; });
-            if (it != pools.end())
-                return { *it, it - pools.begin() };
+            auto it = std::find_if(std::begin(pools), std::end(pools), [](pool* p) -> bool { return p->head; });
+            if (it != std::end(pools))
+                return { **it, it - std::begin(pools) };
         }
 
-        pool p{};
+        auto * p = new taskete::detail::pool();
         auto * resource = pools.get_allocator().resource();
-        p.raw_mem = resource->allocate(options.pool_capacity * sizeof(T), alignof(T));
-        populate_list(p);
+        p->raw_mem = static_cast<std::byte*>(resource->allocate(options.pool_capacity * sizeof(T), alignof(T)));
+        populate_list(*p);
 
         {
             std::unique_lock ex_lock{ rw_mutex };
             pools.emplace_back(std::move(p));
-            it = pools.begin() + pools.size() - 1;
-            return { *it, it - pools.begin() };
+            auto it = --std::end(pools);
+            return { **it, it - std::begin(pools) };
         }
     }
 
@@ -87,15 +90,14 @@ namespace taskete::detail
     inline void pool_manager<T>::populate_list(pool& p) noexcept
     {
         auto count = options.pool_capacity;
-        
-        std::byte* pos = p.raw_mem;
-        FreeList* node = new(pos) FreeList{};
 
-        while (--count) // head handled outside the loop
+        p.head = new(p.raw_mem) FreeList{};
+        auto* current_node = p.head;
+
+        for (std::uint32_t i = 1; i < count; ++i)
         {
-            pos += sizeof(T);
-            node->next = new(pos) FreeList{};
-            node = node->next;
+            current_node->next = new(p.raw_mem + i * sizeof(T)) FreeList{};
+            current_node = current_node->next;
         }
     }
 
@@ -141,21 +143,21 @@ namespace taskete::detail
             pool.head = pool.head->next;
         }
 
-        return helper.make_handle(index, static_cast<T*>(pool.raw_mem), new(free_pos) T{ std::forward<Args>(args)... });
+        return helper.make_handle(index, reinterpret_cast<T*>(pool.raw_mem), new(free_pos) T{ std::forward<Args>(args)... });
     }
 
     template<typename T>
     inline void pool_manager<T>::destroy(handle_t handle) noexcept(std::is_nothrow_destructible_v<T>)
     {
-        decltype(pools.begin()) pool;
+        decltype(std::begin(pools)) pool;
 
         {
-            std::shared_mutex sh_lock{ rw_mutex };
-            pool = pools.begin() + helper.extract_pool(handle);
+            std::shared_lock sh_lock{ rw_mutex };
+            pool = std::begin(pools) + helper.extract_pool(handle);
         }
 
         std::unique_lock lock{ pool->mtx };
-        T* obj = static_cast<T*>(pool->raw_mem) + helper.extract_offset(handle);
+        T* obj = reinterpret_cast<T*>(pool->raw_mem) + helper.extract_offset(handle);
         
         if constexpr (!std::is_trivially_destructible_v<T>)
             obj->~T();
@@ -164,12 +166,26 @@ namespace taskete::detail
     }
 
     template<typename T>
+    inline T& pool_manager<T>::get(handle_t handle) noexcept
+    {
+        decltype(std::begin(pools)) pool;
+
+        {
+            std::shared_lock sh_lock{ rw_mutex };
+            pool = std::begin(pools) + helper.extract_pool(handle);
+        }
+
+        return *(reinterpret_cast<T*>((*pool)->raw_mem) + helper.extract_offset(handle));
+    }
+
+    template<typename T>
     inline pool_manager<T>::~pool_manager()
     {
         auto* resource = pools.get_allocator().resource();
-        for (auto& p : pools)
+        for (auto* p : pools)
         {
-            resource->deallocate(p.head, options.pool_capacity * sizeof(T), alignof(T));
+            resource->deallocate(p->raw_mem, options.pool_capacity * sizeof(T), alignof(T));
+            delete p;
         }
     }
 }

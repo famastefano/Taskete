@@ -60,25 +60,26 @@ namespace taskete::detail
 
     inline constexpr std::uint32_t pool_helper::extract_pool(handle_t handle) const noexcept
     {
-        return handle & offset_mask;
+        return (handle & pool_mask) >> pool_shift;
     }
 
     inline constexpr std::uint32_t pool_helper::extract_offset(handle_t handle) const noexcept
     {
-        return (handle & pool_mask) >> pool_shift;
+        return handle & offset_mask;
     }
 
     template<typename T>
     inline constexpr handle_t pool_helper::make_handle(std::uint32_t index, T* base, T* obj) const noexcept
     {
-        return handle_t((index << pool_shift) | obj - base);
+        return handle_t((std::uint64_t(index) << pool_shift) | obj - base);
     }
 
     inline constexpr std::uint32_t pool_helper::log2(std::uint32_t v) const noexcept
     {
-        // Credits: https://graphics.stanford.edu/~seander/bithacks.html#IntegerLogObvious
-        
-        std::uint32_t r = 0; // r will be lg(v)
+        if (!v)
+            return 0;
+
+        std::uint32_t r = 1; // r will be lg(v)
 
         while (v >>= 1)
         {
