@@ -10,6 +10,9 @@
 
 namespace taskete::detail
 {
+    /*
+     *  Provides helper methods to process the handles
+     */
     class pool_helper
     {
     private:
@@ -50,12 +53,9 @@ namespace taskete::detail
 
         pool_mask = ~offset_mask;
 
-        if (options.max_pools) // not all bits will be used for the pool
-        {
-            auto bound_shift = this->log2(options.max_pools);
-            pool_mask <<= bound_shift; // clears upper bits
-            pool_mask >>= bound_shift;
-        }
+        auto bound_shift = this->log2(options.max_pools);
+        pool_mask <<= bound_shift; // clears upper bits
+        pool_mask >>= bound_shift;
     }
 
     inline constexpr std::uint32_t pool_helper::extract_pool(handle_t handle) const noexcept

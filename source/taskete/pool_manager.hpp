@@ -19,15 +19,15 @@
 
 namespace taskete::detail
 {
-    struct FreeList
+    struct free_list
     {
-        FreeList* next = nullptr;
+        free_list* next = nullptr;
     };
 
     struct pool
     {
         std::byte* raw_mem = nullptr;
-        FreeList* head = nullptr;
+        free_list* head = nullptr;
         spinlock mtx;
 
         pool() = default;
@@ -37,6 +37,9 @@ namespace taskete::detail
         {}
     };
 
+    /*
+     * Pool Allocator that uses handles instead of raw pointers.
+     */
     template<typename T>
     class pool_manager
     {
@@ -49,6 +52,7 @@ namespace taskete::detail
         std::pair<pool&, std::uint32_t> find_or_create_pool();
         void populate_list(pool& p) noexcept;
         void mark_as_free(pool& p, void* obj) noexcept;
+        pool& get_pool(handle_t handle) noexcept;
 
     public:
         constexpr pool_manager(pool_options options) noexcept;
@@ -63,6 +67,13 @@ namespace taskete::detail
         ~pool_manager();
     };
 
+    /*
+     * Returns a pool with a free block.
+     * It tries to find an existing pool, otherwise it constructs a new one.
+     * 
+     * Throws: bad_alloc
+     *         when it can't allocate more pools
+     */
     template<typename T>
     inline std::pair<pool&, std::uint32_t> pool_manager<T>::find_or_create_pool()
     {
@@ -71,7 +82,12 @@ namespace taskete::detail
             auto it = std::find_if(std::begin(pools), std::end(pools), [](pool* p) -> bool { return p->head; });
             if (it != std::end(pools))
                 return { **it, it - std::begin(pools) };
+
+            if (pools.size() == options.max_pools)
+                throw std::bad_alloc{};
         }
+
+        // Construct the new pool
 
         auto * p = new taskete::detail::pool();
         auto * resource = pools.get_allocator().resource();
@@ -85,41 +101,57 @@ namespace taskete::detail
             return { **it, it - std::begin(pools) };
         }
     }
-
+    
+    /*
+     * Initializes the pool's free list.
+     */
     template<typename T>
     inline void pool_manager<T>::populate_list(pool& p) noexcept
     {
         auto count = options.pool_capacity;
 
-        p.head = new(p.raw_mem) FreeList{};
+        p.head = new(p.raw_mem) free_list{};
         auto* current_node = p.head;
 
-        for (std::uint32_t i = 1; i < count; ++i)
+        for (std::uint32_t i = 1; i < count; ++i) // 1st node already created
         {
-            current_node->next = new(p.raw_mem + i * sizeof(T)) FreeList{};
+            current_node->next = new(p.raw_mem + i * sizeof(T)) free_list{};
             current_node = current_node->next;
         }
     }
 
+    /*
+     * Marks a block as free by adding it to the free list.
+     */
     template<typename T>
     inline void pool_manager<T>::mark_as_free(pool & p, void * obj) noexcept
     {
         std::unique_lock lock{ p.mtx };
 
-        FreeList* new_node = new(obj) FreeList{};
+        free_list* new_node = new(obj) free_list{};
 
-        if (!p.head)
+        if (!p.head) // we are the new head
         {
             p.head = new_node;
             return;
         }
 
-        FreeList* node = p.head;
+        // We keep the free list ordered by address.
+
+        free_list* node = p.head;
         while (node->next && node->next < new_node)
             node = node->next;
 
         new_node->next = node->next;
         node->next = new_node;
+    }
+
+    template<typename T>
+    inline pool& pool_manager<T>::get_pool(handle_t handle) noexcept
+    {
+        std::shared_lock sh_lock{ rw_mutex };
+        auto pool = std::begin(pools) + helper.extract_pool(handle);
+        return **pool;
     }
 
     template<typename T>
@@ -135,7 +167,7 @@ namespace taskete::detail
 
         auto [pool, index] = find_or_create_pool();
 
-        FreeList* free_pos{};
+        free_list* free_pos{};
 
         {
             std::unique_lock lock{ pool.mtx };
@@ -149,33 +181,23 @@ namespace taskete::detail
     template<typename T>
     inline void pool_manager<T>::destroy(handle_t handle) noexcept(std::is_nothrow_destructible_v<T>)
     {
-        decltype(std::begin(pools)) pool;
+        auto& pool = get_pool(handle);
 
-        {
-            std::shared_lock sh_lock{ rw_mutex };
-            pool = std::begin(pools) + helper.extract_pool(handle);
-        }
-
-        std::unique_lock lock{ pool->mtx };
-        T* obj = reinterpret_cast<T*>(pool->raw_mem) + helper.extract_offset(handle);
+        std::unique_lock lock{ pool.mtx };
+        T* obj = reinterpret_cast<T*>(pool.raw_mem) + helper.extract_offset(handle);
         
         if constexpr (!std::is_trivially_destructible_v<T>)
             obj->~T();
 
-        mark_as_free(*pool, obj);
+        mark_as_free(pool, obj);
     }
 
     template<typename T>
     inline T& pool_manager<T>::get(handle_t handle) noexcept
     {
-        decltype(std::begin(pools)) pool;
+        auto& pool = get_pool(handle);
 
-        {
-            std::shared_lock sh_lock{ rw_mutex };
-            pool = std::begin(pools) + helper.extract_pool(handle);
-        }
-
-        return *(reinterpret_cast<T*>((*pool)->raw_mem) + helper.extract_offset(handle));
+        return *(reinterpret_cast<T*>(pool.raw_mem) + helper.extract_offset(handle));
     }
 
     template<typename T>
